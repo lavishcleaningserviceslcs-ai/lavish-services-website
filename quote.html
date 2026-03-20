@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Get a Free Quote | Lavish Cleaning Services</title>
+    <meta name="description" content="Request a free cleaning quote from Lavish Cleaning Services. Instant estimate calculator, flexible scheduling, and fast follow-up. Serving South Carolina and North Georgia." />
+    <meta name="theme-color" content="#090909" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <!-- Announcement -->
+    <div class="announcement">
+      <p>New-client special &mdash; <strong>10% off</strong> your first deluxe cleaning this month.</p>
+      <a href="#quoteForm">Claim Offer &rarr;</a>
+    </div>
+
+    <!-- Header -->
+    <header class="header" id="top">
+      <div class="container nav-wrap">
+        <a class="brand" href="./index.html">
+          <img class="brand-logo" src="./assets/logo.png" alt="Lavish Cleaning Services logo" width="48" height="48" />
+          <span class="brand-text"><strong>Lavish Cleaning</strong><small>South Carolina &amp; North Georgia</small></span>
+        </a>
+        <nav class="nav" id="mainNav">
+          <a href="./index.html">Home</a>
+          <a href="./services.html">Services</a>
+          <a href="./quote.html" class="nav-active">Get Quote</a>
+        </nav>
+        <div class="nav-cta">
+          <a class="btn btn-ghost btn-sm" href="tel:+18642934844">864-293-4844</a>
+          <a class="btn btn-solid btn-sm" href="#quoteForm">Free Quote</a>
+        </div>
+        <button class="hamburger" id="hamburger" aria-label="Open menu"><span></span><span></span><span></span></button>
+      </div>
+    </header>
+
+    <main>
+      <!-- PAGE HEADER -->
+      <section class="page-hero">
+        <div class="hero-bg-glow"></div>
+        <div class="container reveal reveal-left">
+          <p class="eyebrow">Free Quote</p>
+          <h1>Get Your <span class="text-gold">Instant Estimate</span></h1>
+          <p class="subcopy">Fill out the form below and we will follow up quickly to confirm your appointment and final pricing. No obligations.</p>
+        </div>
+      </section>
+
+      <!-- QUOTE FORM + CONTACT -->
+      <section class="section section-quote" id="quote">
+        <div class="container quote-grid">
+          <div class="quote-copy reveal reveal-left">
+            <h2>Contact Us</h2>
+            <div class="contact-block">
+              <div class="contact-item">
+                <span class="contact-icon">&#128222;</span>
+                <div><strong>Call Us</strong><a href="tel:+18642934844">864-293-4844</a></div>
+              </div>
+              <div class="contact-item">
+                <span class="contact-icon">&#9993;</span>
+                <div><strong>Email Us</strong><a href="mailto:upstate@lavishhousecleaning.com">upstate@lavishhousecleaning.com</a></div>
+              </div>
+              <div class="contact-item">
+                <span class="contact-icon">&#128205;</span>
+                <div><strong>Service Areas</strong><span>South Carolina &bull; North Georgia</span></div>
+              </div>
+              <div class="contact-item">
+                <span class="contact-icon">&#128339;</span>
+                <div>
+                  <strong>Hours</strong>
+                  <span>Mon&ndash;Fri: 8am&ndash;8pm<br/>Saturday: 9am&ndash;7pm<br/>Sunday: Closed</span>
+                </div>
+              </div>
+            </div>
+            <div class="social-links">
+              <a href="#" class="social-link">Facebook</a>
+              <a href="#" class="social-link">Instagram</a>
+            </div>
+          </div>
+
+          <form id="quoteForm" class="quote-form reveal reveal-right reveal-delay-2" novalidate>
+            <h3>Request Your Free Quote</h3>
+            <div class="field-row">
+              <label>First Name <input name="firstName" type="text" autocomplete="given-name" required /></label>
+              <label>Last Name <input name="lastName" type="text" autocomplete="family-name" required /></label>
+            </div>
+            <div class="field-row">
+              <label>Phone <input name="phone" type="tel" autocomplete="tel" required /></label>
+              <label>Email <input name="email" type="email" autocomplete="email" required /></label>
+            </div>
+            <div class="field-row">
+              <label>
+                Service Type
+                <select name="serviceType" required>
+                  <option value="">Select a service</option>
+                  <option value="deluxe">Detailed Deluxe (Deep Clean)</option>
+                  <option value="move">On The Move (Move In/Out)</option>
+                  <option value="recurring">Standard Clean (Recurring)</option>
+                </select>
+              </label>
+              <label>
+                Frequency
+                <select name="frequency" id="frequencySelect">
+                  <option value="once">One-time</option>
+                  <option value="weekly">Weekly (discount starts after 3rd clean)</option>
+                  <option value="biweekly">Bi-weekly (discount starts after 3rd clean)</option>
+                  <option value="monthly">Monthly (discount starts after 3rd clean)</option>
+                </select>
+              </label>
+            </div>
+            <p class="microcopy" style="margin-top:-0.1rem;">
+              Standard Clean recurring packages include a Deep Clean baseline, and discounts apply after your first 3 completed cleanings.
+            </p>
+            <div class="field-row field-row-3">
+              <label>Bedrooms <input name="rooms" type="number" min="1" max="12" value="3" required /></label>
+              <label>Bathrooms <input name="bathrooms" type="number" min="1" max="12" value="2" required /></label>
+              <label>Sq Ft <input name="sqft" type="number" min="400" max="10000" value="1600" required /></label>
+            </div>
+            <label>Desired Date <input name="date" type="date" required /></label>
+
+            <fieldset class="addons-fieldset">
+              <legend>Add-ons (optional)</legend>
+              <div class="addon-grid">
+                <label class="addon-label"><input type="checkbox" name="addon" value="oven" /> Inside oven (+$35)</label>
+                <label class="addon-label"><input type="checkbox" name="addon" value="windows" /> Interior windows (+$45)</label>
+                <label class="addon-label"><input type="checkbox" name="addon" value="carpet" /> Carpet cleaning (quoted)</label>
+                <label class="addon-label"><input type="checkbox" name="addon" value="organizing" /> Light organizing (+$50)</label>
+              </div>
+            </fieldset>
+            <button class="btn btn-ghost btn-block" type="button" id="addAddonsToCart">Add Selected Add-ons to Cart</button>
+            <div class="field-row">
+              <label>
+                Wash &amp; Change Beds - Number of Beds
+                <select name="bedCount">
+                  <option value="0">0</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                </select>
+              </label>
+              <label>
+                Bed Size
+                <select name="bedSize">
+                  <option value="twin">Twin (+$12/bed)</option>
+                  <option value="full">Full (+$15/bed)</option>
+                  <option value="queen" selected>Queen (+$18/bed)</option>
+                  <option value="king">King (+$22/bed)</option>
+                </select>
+              </label>
+            </div>
+
+            <label>Special Requests <textarea name="notes" rows="3" placeholder="Pets, gate code, parking, allergies..."></textarea></label>
+            <input type="text" name="company" class="honeypot" tabindex="-1" autocomplete="off" />
+
+            <div class="estimate" id="estimateBox">
+              <div class="estimate-header"><span>Your Instant Estimate</span></div>
+              <div class="estimate-breakdown" id="estimateBreakdown"></div>
+              <div class="estimate-total">
+                <span>Estimated Total</span>
+                <strong id="estimateValue">$149 &ndash; $189</strong>
+              </div>
+            </div>
+
+            <div class="cart-summary-box" id="cartSummaryBox">
+              <div class="estimate-header"><span>Cart Summary</span></div>
+              <p id="cartSummaryText" class="microcopy" style="margin:0;">No items in cart yet.</p>
+            </div>
+
+            <button type="submit" class="btn btn-solid btn-block btn-glow btn-lg">Request My Free Quote &rarr;</button>
+            <p class="microcopy">By submitting you agree to receive call/text follow-up about your quote. No spam, ever.</p>
+            <p id="formMessage" class="form-message" aria-live="polite"></p>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="container footer-grid">
+        <div>
+          <img class="footer-logo" src="./assets/logo.png" alt="Lavish Cleaning Services logo" width="72" height="72" />
+          <h3>Lavish Cleaning Services</h3>
+          <p>Experience a luxurious clean, every&nbsp;time.</p>
+          <div class="footer-social"><a href="#">Facebook</a><a href="#">Instagram</a></div>
+        </div>
+        <div>
+          <h4>Quick Links</h4>
+          <nav class="footer-nav">
+            <a href="./index.html">Home</a><a href="./services.html">Our Services</a><a href="./commercial.html">Commercial</a><a href="./quote.html">Get Quote</a><a href="./services.html#faq">FAQ</a>
+          </nav>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <p><strong>Phone:</strong> <a href="tel:+18642934844">864-293-4844</a></p>
+          <p><strong>Email:</strong> <a href="mailto:upstate@lavishhousecleaning.com">upstate@lavishhousecleaning.com</a></p>
+          <h4>Hours</h4>
+          <p>Mon &ndash; Fri: 8am &ndash; 8pm</p><p>Saturday: 9am &ndash; 7pm</p><p>Sunday: Closed</p>
+        </div>
+      </div>
+      <div class="container footer-bottom">
+        <p>&copy; 2023 Lavish Cleaning Services. All rights&nbsp;reserved.</p>
+        <a href="#">Terms and Conditions</a>
+      </div>
+    </footer>
+
+    <div class="mobile-cta">
+      <a href="tel:+18642934844">&#128222; Call</a>
+      <a href="#quoteForm">Get Quote</a>
+      <a href="./services.html">Services</a>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
