@@ -802,10 +802,10 @@
 
         data.getAll("addon").forEach(function (addon) {
           const map = {
+            fridge: { name: "Add-on: Inside Fridge", price: 35, quoted: false },
             oven: { name: "Add-on: Inside Oven", price: 35, quoted: false },
+            cabinets: { name: "Add-on: Cabinet Fronts/Detail", price: 30, quoted: false },
             windows: { name: "Add-on: Interior Windows", price: 45, quoted: false },
-            organizing: { name: "Add-on: Light Organizing", price: 50, quoted: false },
-            carpet: { name: "Add-on: Carpet Cleaning", price: 0, quoted: true },
           };
           if (!map[addon]) return;
           cart.add(map[addon]);
@@ -853,24 +853,76 @@
   }
 
   /* ---------- QUOTE FORM + CALCULATOR ---------- */
-  const ADDON_PRICES = { oven: 35, windows: 45, organizing: 50 };
+  const ADDON_PRICES = { fridge: 35, oven: 35, cabinets: 30, windows: 45 };
   const BED_SIZE_PRICES = { twin: 12, full: 15, queen: 18, king: 22 };
-  const FREQUENCY_DISCOUNTS = { once: 0, weekly: 0.15, biweekly: 0.10, monthly: 0.05 };
-  const SERVICE_RATES = {
-    deluxe: { base: 110, perRoom: 20, perBath: 28, sqftRate: 0.045, sqftFloor: 1000 },
-    move: { base: 140, perRoom: 25, perBath: 32, sqftRate: 0.055, sqftFloor: 1000 },
-    recurring: { base: 85, perRoom: 16, perBath: 22, sqftRate: 0.035, sqftFloor: 1000 },
+  const SERVICE_FEE = 15;
+  const PACKAGE_OPTIONS = {
+    once: [
+      { id: "oneTimeDesign", label: "Design with Time" },
+      { id: "oneTimeDeep", label: "Deep Clean" },
+      { id: "oneTimeMove", label: "Move In/Move Out" },
+    ],
+    weekly: [
+      { id: "weeklyPremium", label: "Premium Weekly" },
+      { id: "weeklyAlternating", label: "Alternating Weekly" },
+    ],
+    biweekly: [
+      { id: "biweeklyPremium", label: "Premium Biweekly" },
+      { id: "biweeklyAlternating", label: "Alternating Biweekly" },
+    ],
+    monthly: [{ id: "monthlyPremium", label: "Premium Monthly" }],
   };
+  const CALIBRATED_MODELS = {
+    oneTimeDesign: [141.1986, -7.4310, -4.6371, 16.2329, -0.5823, 17.4742, 9.5590, 4.4657, 2.5121, -7.1000, -2.5695],
+    oneTimeDeep: [90.3572, -15.9162, 31.3769, 25.3710, 36.8735, 156.3205, -21.9529, 22.4323, 6.0718, -8.3355, -11.9819],
+    oneTimeMove: [185.8269, 8.6806, -29.9659, -9.7947, 26.5605, 145.1181, 5.3334, -8.9342, 9.8493, 8.4683, -18.6732],
+    weeklyPremium: [118.8521, -1.2127, -0.2170, -5.9703, 3.1225, 1.4344, -0.8899, 2.4776, 1.5359, 5.2378, -2.0899],
+    weeklyAlternating: [95.9955, -4.0359, 2.9264, -3.2072, -3.5782, 20.0235, -2.1320, 3.2438, -1.2087, 2.6445, 2.7825],
+    biweeklyPremium: [121.2093, -0.4011, 5.2416, -5.7905, -1.0847, 3.4572, -1.7814, 2.7150, 0.1298, 5.2609, 0.0580],
+    biweeklyAlternating: [98.5149, -2.4799, 6.9087, -3.5855, -5.4093, 19.3015, -2.3081, 2.9721, -2.0853, 3.1249, 3.2330],
+    monthlyPremium: [80.8578, 6.8789, 30.3675, -19.9420, 11.8003, 60.9471, -12.7935, 2.4103, -0.1186, 8.3477, -6.9278],
+  };
+
+  function rebuildPackageOptions(serviceType, preserveValue) {
+    if (!form) return;
+    const packageSelect = form.querySelector('[name="cleaningPackage"]');
+    if (!packageSelect) return;
+    const options = PACKAGE_OPTIONS[serviceType] || [];
+    packageSelect.innerHTML = "<option value=\"\">Select package</option>" + options.map(function (opt) {
+      return "<option value=\"" + opt.id + "\">" + opt.label + "</option>";
+    }).join("");
+    if (preserveValue && options.some(function (opt) { return opt.id === preserveValue; })) {
+      packageSelect.value = preserveValue;
+    }
+  }
+
+  function predictBasePrice(d) {
+    const coeffs = CALIBRATED_MODELS[d.cleaningPackage];
+    if (!coeffs) return null;
+    const s = d.sqft / 1000;
+    const x = [1, d.rooms, d.bathrooms, d.people, d.pets, s, d.rooms * d.bathrooms, d.rooms * s, d.bathrooms * s, d.people * s, d.pets * s];
+    const raw = x.reduce(function (sum, v, idx) { return sum + v * coeffs[idx]; }, 0);
+    return Math.max(85, Math.round(raw));
+  }
 
   function getFormData() {
     if (!form) return null;
     const d = new FormData(form);
+    const selectedService = String(d.get("serviceType") || "");
+    const serviceMap = {
+      deluxe: "once",
+      move: "once",
+      recurring: "biweekly",
+    };
+    const normalizedService = serviceMap[selectedService] || selectedService;
     return {
-      service: d.get("serviceType") || "",
-      frequency: d.get("frequency") || "once",
+      service: normalizedService,
+      cleaningPackage: String(d.get("cleaningPackage") || ""),
       rooms: Math.max(1, parseInt(d.get("rooms"), 10) || 1),
       bathrooms: Math.max(1, parseInt(d.get("bathrooms"), 10) || 1),
       sqft: Math.max(400, parseInt(d.get("sqft"), 10) || 1000),
+      people: Math.max(1, parseInt(d.get("people"), 10) || 1),
+      pets: Math.max(0, parseInt(d.get("pets"), 10) || 0),
       addons: d.getAll("addon"),
       bedCount: Math.max(0, parseInt(d.get("bedCount"), 10) || 0),
       bedSize: d.get("bedSize") || "queen",
@@ -888,32 +940,38 @@
   function calculateEstimate() {
     if (!form || !estimateValue) return;
     const d = getFormData();
-    const rates = SERVICE_RATES[d.service];
 
-    if (!rates) {
-      estimateValue.textContent = "Select a service above";
+    if (!d.service) {
+      estimateValue.textContent = "Select a cleaning type above";
+      if (estimateBreakdown) estimateBreakdown.innerHTML = "";
+      return;
+    }
+    if (!d.cleaningPackage) {
+      estimateValue.textContent = "Select a cleaning package";
       if (estimateBreakdown) estimateBreakdown.innerHTML = "";
       return;
     }
 
-    const baseCost = rates.base;
-    const roomCost = d.rooms * rates.perRoom;
-    const bathCost = d.bathrooms * rates.perBath;
-    const sqftExtra = Math.max(0, d.sqft - rates.sqftFloor) * rates.sqftRate;
+    const baseCost = predictBasePrice(d);
+    if (baseCost === null) {
+      estimateValue.textContent = "Unable to calculate this package";
+      if (estimateBreakdown) estimateBreakdown.innerHTML = "";
+      return;
+    }
+
+    const option = (PACKAGE_OPTIONS[d.service] || []).find(function (p) { return p.id === d.cleaningPackage; });
 
     let addonTotal = 0;
     let html = "";
-    html += lineItem("Base (" + ({ deluxe: "Detailed Deluxe", move: "On The Move", recurring: "Standard Clean" })[d.service] + ")", baseCost);
-    html += lineItem(d.rooms + " bedrooms", roomCost);
-    html += lineItem(d.bathrooms + " bathrooms", bathCost);
-    if (sqftExtra > 0) html += lineItem("Sq ft adjustment (" + d.sqft.toLocaleString() + " sq ft)", sqftExtra);
+    html += lineItem("Package (" + (option ? option.label : d.cleaningPackage) + ")", baseCost);
+    html += lineItem("Home Profile", 0, d.rooms + " bd • " + d.bathrooms + " ba • " + d.people + " people • " + d.pets + " pets");
+    html += lineItem("Square Footage", 0, d.sqft.toLocaleString() + " sq ft");
 
     d.addons.forEach(function (addon) {
       if (ADDON_PRICES[addon]) {
         addonTotal += ADDON_PRICES[addon];
         html += lineItem("Add-on: " + addon.charAt(0).toUpperCase() + addon.slice(1), ADDON_PRICES[addon]);
       }
-      if (addon === "carpet") html += lineItem("Add-on: Carpet Cleaning", 0, "Quoted");
     });
 
     if (d.bedCount > 0) {
@@ -922,19 +980,12 @@
       html += lineItem("Wash & Change Beds (" + d.bedCount + " " + d.bedSize + ")", bedCost);
     }
 
-    const subtotal = baseCost + roomCost + bathCost + sqftExtra + addonTotal;
-    const discountPct = FREQUENCY_DISCOUNTS[d.frequency] || 0;
-    const discounted = subtotal * (1 - discountPct);
-    const low = Math.round(subtotal * 0.92);
-    const high = Math.round(subtotal * 1.08);
-
-    if (discountPct > 0) {
-      html += lineItem(({ weekly: "Weekly", biweekly: "Bi-weekly", monthly: "Monthly" })[d.frequency] + " discount", 0, "Starts after 3 cleanings");
-      html += lineItem("Projected discounted price", 0, currency(discounted * 0.92) + " \u2013 " + currency(discounted * 1.08));
-    }
+    const visitSubtotal = baseCost + addonTotal;
+    const grandTotal = visitSubtotal + SERVICE_FEE;
+    html += lineItem("Service fee", SERVICE_FEE);
 
     if (estimateBreakdown) estimateBreakdown.innerHTML = html;
-    estimateValue.textContent = currency(low) + " \u2013 " + currency(high);
+    estimateValue.textContent = currency(grandTotal);
   }
 
   function validateForm() {
@@ -993,7 +1044,25 @@
     const params = new URLSearchParams(window.location.search);
     const preService = params.get("service");
     const serviceSelect = form.querySelector('[name="serviceType"]');
-    if (preService && serviceSelect) serviceSelect.value = preService;
+    const packageSelect = form.querySelector('[name="cleaningPackage"]');
+    const prefillMap = { deluxe: "once", move: "once", recurring: "biweekly", oneTime: "once" };
+
+    if (serviceSelect) {
+      rebuildPackageOptions(serviceSelect.value || "", "");
+      serviceSelect.addEventListener("change", function () {
+        var current = packageSelect ? packageSelect.value : "";
+        rebuildPackageOptions(serviceSelect.value || "", current);
+        calculateEstimate();
+      });
+    }
+
+    if (preService && serviceSelect) {
+      serviceSelect.value = prefillMap[preService] || preService;
+      rebuildPackageOptions(serviceSelect.value || "", "");
+      if (packageSelect && packageSelect.options.length > 1) {
+        packageSelect.selectedIndex = 1;
+      }
+    }
 
     const dateInput = form.querySelector('[name="date"]');
     if (dateInput) {
@@ -1033,7 +1102,8 @@
         const select = document.querySelector('[name="serviceType"]');
         if (select) {
           e.preventDefault();
-          select.value = service;
+          const prefillMap = { deluxe: "once", move: "once", recurring: "biweekly", oneTime: "once" };
+          select.value = prefillMap[service] || service;
           select.dispatchEvent(new Event("change", { bubbles: true }));
           const f = document.getElementById("quoteForm");
           if (f) f.scrollIntoView({ behavior: "smooth", block: "start" });

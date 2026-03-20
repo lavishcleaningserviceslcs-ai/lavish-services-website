@@ -82,7 +82,7 @@
           </div>
 
           <form id="quoteForm" class="quote-form reveal reveal-right reveal-delay-2" novalidate>
-            <h3>Request Your Free Quote</h3>
+            <h3>Calculate Your Price</h3>
             <div class="field-row">
               <label>First Name <input name="firstName" type="text" autocomplete="given-name" required /></label>
               <label>Last Name <input name="lastName" type="text" autocomplete="family-name" required /></label>
@@ -93,41 +93,43 @@
             </div>
             <div class="field-row">
               <label>
-                Service Type
+                Cleaning Type
                 <select name="serviceType" required>
-                  <option value="">Select a service</option>
-                  <option value="deluxe">Detailed Deluxe (Deep Clean)</option>
-                  <option value="move">On The Move (Move In/Out)</option>
-                  <option value="recurring">Standard Clean (Recurring)</option>
+                  <option value="">Select cleaning type</option>
+                  <option value="once">One-Time</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Every 2 Weeks</option>
+                  <option value="monthly">Every 4 Weeks</option>
                 </select>
               </label>
               <label>
-                Frequency
-                <select name="frequency" id="frequencySelect">
-                  <option value="once">One-time</option>
-                  <option value="weekly">Weekly (discount starts after 3rd clean)</option>
-                  <option value="biweekly">Bi-weekly (discount starts after 3rd clean)</option>
-                  <option value="monthly">Monthly (discount starts after 3rd clean)</option>
+                Cleaning Package
+                <select name="cleaningPackage" id="cleaningPackageSelect" required>
+                  <option value="">Select package</option>
                 </select>
               </label>
             </div>
             <p class="microcopy" style="margin-top:-0.1rem;">
-              Standard Clean recurring packages include a Deep Clean baseline, and discounts apply after your first 3 completed cleanings.
+              Quote inputs match a booking-style flow: bedrooms, bathrooms, people, pets, and square footage.
             </p>
             <div class="field-row field-row-3">
               <label>Bedrooms <input name="rooms" type="number" min="1" max="12" value="3" required /></label>
               <label>Bathrooms <input name="bathrooms" type="number" min="1" max="12" value="2" required /></label>
               <label>Sq Ft <input name="sqft" type="number" min="400" max="10000" value="1600" required /></label>
             </div>
+            <div class="field-row">
+              <label>People <input name="people" type="number" min="1" max="12" value="2" required /></label>
+              <label>Pets <input name="pets" type="number" min="0" max="8" value="0" required /></label>
+            </div>
             <label>Desired Date <input name="date" type="date" required /></label>
 
             <fieldset class="addons-fieldset">
               <legend>Add-ons (optional)</legend>
               <div class="addon-grid">
+                <label class="addon-label"><input type="checkbox" name="addon" value="fridge" /> Inside fridge (+$35)</label>
                 <label class="addon-label"><input type="checkbox" name="addon" value="oven" /> Inside oven (+$35)</label>
+                <label class="addon-label"><input type="checkbox" name="addon" value="cabinets" /> Cabinet fronts/detail (+$30)</label>
                 <label class="addon-label"><input type="checkbox" name="addon" value="windows" /> Interior windows (+$45)</label>
-                <label class="addon-label"><input type="checkbox" name="addon" value="carpet" /> Carpet cleaning (quoted)</label>
-                <label class="addon-label"><input type="checkbox" name="addon" value="organizing" /> Light organizing (+$50)</label>
               </div>
             </fieldset>
             <button class="btn btn-ghost btn-block" type="button" id="addAddonsToCart">Add Selected Add-ons to Cart</button>
