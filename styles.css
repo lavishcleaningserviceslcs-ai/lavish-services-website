@@ -753,6 +753,98 @@ input:focus, select:focus, textarea:focus {
 
 .honeypot { position: absolute; left: -9999px; opacity: 0; }
 
+/* ---- CHECKOUT + ACCOUNT ---- */
+.checkout-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 1.2rem;
+  align-items: start;
+}
+
+.account-grid {
+  display: grid;
+  grid-template-columns: 0.42fr 0.58fr;
+  gap: 1.2rem;
+  align-items: start;
+}
+
+.mock-card-slot {
+  border: 1px dashed rgba(139, 92, 246, 0.5);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem;
+  text-align: center;
+  color: var(--purple-soft);
+  font-weight: 700;
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.checkout-items-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 0.8rem;
+}
+
+.account-nav-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.account-tab-btn {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 0.68rem 0.8rem;
+  text-align: left;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.account-tab-btn:hover,
+.account-tab-btn.is-active {
+  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(139, 92, 246, 0.14);
+  color: var(--purple-soft);
+}
+
+.account-panel { display: none; }
+.account-panel.is-active { display: block; }
+
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.admin-orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 780px;
+}
+
+.admin-orders-table th,
+.admin-orders-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.65rem;
+  text-align: left;
+  vertical-align: top;
+  font-size: 0.86rem;
+}
+
+.admin-orders-table th {
+  color: var(--brand-light);
+  font-weight: 700;
+}
+
+.admin-actions-cell {
+  display: grid;
+  gap: 0.3rem;
+}
+
 /* ---- FAQ ---- */
 .faq { background: var(--surface); }
 .faq-list { display: grid; gap: 0.6rem; max-width: 800px; }
@@ -1297,13 +1389,14 @@ body.lavish-cart-open .lavish-cart-backdrop { opacity: 1; pointer-events: auto; 
     gap: 1.5rem; font-size: 1.3rem;
   }
 
-  .hero-grid, .card-grid, .review-grid, .split-grid, .quote-grid, .footer-grid,
+  .hero-grid, .card-grid, .review-grid, .split-grid, .quote-grid, .checkout-grid, .account-grid, .footer-grid,
   .service-detail-grid, .commercial-grid, .steps-row, .addon-showcase {
     grid-template-columns: 1fr;
   }
   .hero-points { grid-template-columns: 1fr; }
   .field-row, .field-row-3 { grid-template-columns: 1fr; }
   .addon-grid { grid-template-columns: 1fr; }
+  .admin-stats-grid { grid-template-columns: 1fr 1fr; }
   .footer-bottom { flex-direction: column; gap: 0.5rem; text-align: center; }
 }
 

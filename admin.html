@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard | Lavish Cleaning Services</title>
+    <meta name="description" content="Admin dashboard for Lavish Cleaning Services orders, revenue, service status, and completion tracking." />
+    <meta name="theme-color" content="#090909" />
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="announcement">
+      <p>Admin view is in custom mode and ready for Supabase DB connection.</p>
+      <a href="./checkout.html">New Checkout &rarr;</a>
+    </div>
+
+    <header class="header" id="top">
+      <div class="container nav-wrap">
+        <a class="brand" href="./index.html">
+          <img class="brand-logo" src="./assets/logo.png" alt="Lavish Cleaning Services logo" width="48" height="48" />
+          <span class="brand-text"><strong>Lavish Cleaning</strong><small>South Carolina &amp; North Georgia</small></span>
+        </a>
+        <nav class="nav" id="mainNav">
+          <a href="./index.html">Home</a>
+          <a href="./services.html">Services</a>
+          <a href="./quote.html">Get Quote</a>
+          <a href="./checkout.html">Checkout</a>
+          <a href="./account.html">Account</a>
+          <a href="./admin.html" class="nav-active">Admin</a>
+        </nav>
+        <div class="nav-cta">
+          <a class="btn btn-ghost btn-sm" href="tel:+18642934844">864-293-4844</a>
+          <a class="btn btn-solid btn-sm" href="./quote.html">New Quote</a>
+        </div>
+        <button class="hamburger" id="hamburger" aria-label="Open menu"><span></span><span></span><span></span></button>
+      </div>
+    </header>
+
+    <main>
+      <section class="page-hero">
+        <div class="hero-bg-glow"></div>
+        <div class="container reveal reveal-left">
+          <p class="eyebrow">Operations</p>
+          <h1>Admin <span class="text-gold">Dashboard</span></h1>
+          <p class="subcopy">Track orders, paid totals, service completion, and package performance. This uses local data now and can be swapped to Supabase tables later.</p>
+        </div>
+      </section>
+
+      <section class="section section-quote">
+        <div class="container">
+          <div class="admin-stats-grid reveal reveal-scale">
+            <article class="service-card">
+              <h3>Total Orders</h3>
+              <p class="price"><span id="adminTotalOrders" class="price-value">0</span></p>
+            </article>
+            <article class="service-card">
+              <h3>Paid Revenue</h3>
+              <p class="price"><span id="adminPaidRevenue" class="price-value">$0</span></p>
+            </article>
+            <article class="service-card">
+              <h3>Pending Revenue</h3>
+              <p class="price"><span id="adminPendingRevenue" class="price-value">$0</span></p>
+            </article>
+            <article class="service-card">
+              <h3>Completed Jobs</h3>
+              <p class="price"><span id="adminCompletedJobs" class="price-value">0</span></p>
+            </article>
+          </div>
+
+          <div class="quote-form reveal reveal-left" style="margin-top:1rem;">
+            <h3>Service Performance</h3>
+            <ul id="adminServiceTotals" class="checkout-items-list"></ul>
+          </div>
+
+          <div class="quote-form reveal reveal-right reveal-delay-2" style="margin-top:1rem;">
+            <div class="field-row">
+              <label>Status Filter
+                <select id="adminStatusFilter">
+                  <option value="all">All</option>
+                  <option value="paid">Paid</option>
+                  <option value="unpaid">Unpaid</option>
+                  <option value="completed">Completed</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </label>
+              <label>Search
+                <input id="adminSearchInput" type="text" placeholder="Order ID, email, name..." />
+              </label>
+            </div>
+            <div style="overflow:auto;">
+              <table class="admin-orders-table" aria-label="Orders table">
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Customer</th>
+                    <th>Service</th>
+                    <th>Total</th>
+                    <th>Paid</th>
+                    <th>Completed</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminOrdersBody"></tbody>
+              </table>
+            </div>
+            <p id="adminMessage" class="form-message" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-grid">
+        <div>
+          <img class="footer-logo" src="./assets/logo.png" alt="Lavish Cleaning Services logo" width="72" height="72" />
+          <h3>Lavish Cleaning Services</h3>
+          <p>Experience a luxurious clean, every time.</p>
+        </div>
+        <div>
+          <h4>Quick Links</h4>
+          <nav class="footer-nav">
+            <a href="./index.html">Home</a><a href="./services.html">Services</a><a href="./quote.html">Get Quote</a><a href="./checkout.html">Checkout</a><a href="./account.html">Account</a><a href="./admin.html">Admin</a>
+          </nav>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <p><strong>Phone:</strong> <a href="tel:+18642934844">864-293-4844</a></p>
+          <p><strong>Email:</strong> <a href="mailto:upstate@lavishhousecleaning.com">upstate@lavishhousecleaning.com</a></p>
+        </div>
+      </div>
+      <div class="container footer-bottom">
+        <p>&copy; 2023 Lavish Cleaning Services. All rights reserved.</p>
+        <a href="#">Terms and Conditions</a>
+      </div>
+    </footer>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

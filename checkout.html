@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Checkout | Lavish Cleaning Services</title>
+    <meta name="description" content="Secure checkout for Lavish Cleaning Services. Review your cleaning package, enter details, and complete booking." />
+    <meta name="theme-color" content="#090909" />
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="announcement">
+      <p>Checkout is live in custom mode &mdash; Stripe connection coming next.</p>
+      <a href="./account.html">Manage Account &rarr;</a>
+    </div>
+
+    <header class="header" id="top">
+      <div class="container nav-wrap">
+        <a class="brand" href="./index.html">
+          <img class="brand-logo" src="./assets/logo.png" alt="Lavish Cleaning Services logo" width="48" height="48" />
+          <span class="brand-text"><strong>Lavish Cleaning</strong><small>South Carolina &amp; North Georgia</small></span>
+        </a>
+        <nav class="nav" id="mainNav">
+          <a href="./index.html">Home</a>
+          <a href="./services.html">Services</a>
+          <a href="./quote.html">Get Quote</a>
+          <a href="./checkout.html" class="nav-active">Checkout</a>
+          <a href="./account.html">Account</a>
+          <a href="./admin.html">Admin</a>
+        </nav>
+        <div class="nav-cta">
+          <a class="btn btn-ghost btn-sm" href="tel:+18642934844">864-293-4844</a>
+          <a class="btn btn-solid btn-sm" href="./quote.html">Edit Quote</a>
+        </div>
+        <button class="hamburger" id="hamburger" aria-label="Open menu"><span></span><span></span><span></span></button>
+      </div>
+    </header>
+
+    <main>
+      <section class="page-hero">
+        <div class="hero-bg-glow"></div>
+        <div class="container reveal reveal-left">
+          <p class="eyebrow">Custom Checkout</p>
+          <h1>Review &amp; <span class="text-gold">Complete Booking</span></h1>
+          <p class="subcopy">This checkout is fully custom and ready for Stripe plug-in. For now, it stores orders locally for testing and demo flow.</p>
+        </div>
+      </section>
+
+      <section class="section section-quote">
+        <div class="container checkout-grid">
+          <form id="checkoutForm" class="quote-form reveal reveal-left" novalidate>
+            <h3>Customer &amp; Service Details</h3>
+            <div class="field-row">
+              <label>First Name <input name="firstName" type="text" autocomplete="given-name" required /></label>
+              <label>Last Name <input name="lastName" type="text" autocomplete="family-name" required /></label>
+            </div>
+            <div class="field-row">
+              <label>Email <input name="email" type="email" autocomplete="email" required /></label>
+              <label>Phone <input name="phone" type="tel" autocomplete="tel" required /></label>
+            </div>
+            <label>Service Address <input name="address1" type="text" placeholder="Street address" required /></label>
+            <div class="field-row field-row-3">
+              <label>City <input name="city" type="text" required /></label>
+              <label>State <input name="state" type="text" maxlength="2" required /></label>
+              <label>ZIP <input name="zip" type="text" inputmode="numeric" required /></label>
+            </div>
+            <div class="field-row">
+              <label>Desired Service Date <input name="serviceDate" type="date" required /></label>
+              <label>Arrival Window
+                <select name="arrivalWindow" required>
+                  <option value="8am-12pm">8am - 12pm</option>
+                  <option value="12pm-4pm">12pm - 4pm</option>
+                  <option value="4pm-8pm">4pm - 8pm</option>
+                </select>
+              </label>
+            </div>
+            <label>Appointment Notes <textarea name="notes" rows="3" placeholder="Gate code, pets, entry instructions, parking..."></textarea></label>
+
+            <fieldset class="addons-fieldset">
+              <legend>Payment (Stripe-ready placeholder)</legend>
+              <p class="microcopy" style="margin:0 0 0.5rem;">Stripe Elements will be mounted in this section when connected.</p>
+              <div class="field-row">
+                <label>Cardholder Name <input name="cardholder" type="text" placeholder="Name on card" /></label>
+                <label>Billing ZIP <input name="billingZip" type="text" inputmode="numeric" placeholder="Billing ZIP" /></label>
+              </div>
+              <div class="mock-card-slot">Secure Card Field Placeholder (Stripe)</div>
+            </fieldset>
+
+            <button type="submit" class="btn btn-solid btn-block btn-glow btn-lg">Place Booking (Demo) &rarr;</button>
+            <p id="checkoutMessage" class="form-message" aria-live="polite"></p>
+          </form>
+
+          <aside class="quote-form reveal reveal-right reveal-delay-2">
+            <h3>Order Summary</h3>
+            <div class="estimate">
+              <div class="estimate-header"><span>Cart Items</span></div>
+              <ul id="checkoutItems" class="checkout-items-list"></ul>
+              <div class="estimate-breakdown">
+                <div class="line-item"><span>Subtotal</span><span id="checkoutSubtotal">$0</span></div>
+                <div class="line-item"><span>Service Fee</span><span id="checkoutServiceFee">$15</span></div>
+                <div class="line-item"><span>Tax</span><span id="checkoutTax">$0</span></div>
+              </div>
+              <div class="estimate-total">
+                <span>Total Due Today</span>
+                <strong id="checkoutTotal">$15</strong>
+              </div>
+            </div>
+            <div class="field-row">
+              <label>Promo Code <input id="promoCodeInput" type="text" placeholder="Enter code" /></label>
+              <label>&nbsp;<button id="applyPromoBtn" type="button" class="btn btn-ghost btn-block">Apply</button></label>
+            </div>
+            <p id="promoMessage" class="microcopy" style="min-height:1.2rem;"></p>
+            <a href="./quote.html" class="btn btn-ghost btn-block">Back to Quote</a>
+            <a href="./account.html" class="btn btn-ghost btn-block">Go to Account</a>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-grid">
+        <div>
+          <img class="footer-logo" src="./assets/logo.png" alt="Lavish Cleaning Services logo" width="72" height="72" />
+          <h3>Lavish Cleaning Services</h3>
+          <p>Experience a luxurious clean, every time.</p>
+        </div>
+        <div>
+          <h4>Quick Links</h4>
+          <nav class="footer-nav">
+            <a href="./index.html">Home</a><a href="./services.html">Services</a><a href="./quote.html">Get Quote</a><a href="./checkout.html">Checkout</a><a href="./account.html">Account</a><a href="./admin.html">Admin</a>
+          </nav>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <p><strong>Phone:</strong> <a href="tel:+18642934844">864-293-4844</a></p>
+          <p><strong>Email:</strong> <a href="mailto:upstate@lavishhousecleaning.com">upstate@lavishhousecleaning.com</a></p>
+        </div>
+      </div>
+      <div class="container footer-bottom">
+        <p>&copy; 2023 Lavish Cleaning Services. All rights reserved.</p>
+        <a href="#">Terms and Conditions</a>
+      </div>
+    </footer>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

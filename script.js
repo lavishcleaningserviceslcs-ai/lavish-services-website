@@ -710,7 +710,7 @@
       "<div class=\"lavish-cart-foot\">" +
       "<div id=\"lavishCartTotal\" class=\"lavish-cart-total\">Total: $0</div>" +
       "<div class=\"lavish-cart-actions\">" +
-      "<button id=\"lavishCartCheckout\" class=\"btn btn-solid btn-block\" type=\"button\">Checkout to Quote</button>" +
+      "<button id=\"lavishCartCheckout\" class=\"btn btn-solid btn-block\" type=\"button\">Checkout</button>" +
       "<button id=\"lavishCartClear\" class=\"btn btn-ghost btn-block\" type=\"button\">Clear Cart</button>" +
       "</div>" +
       "</div>";
@@ -740,7 +740,7 @@
       syncCartSummaryOnQuotePage();
     });
     cartNodes.checkout.addEventListener("click", function () {
-      window.location.href = "./quote.html?fromCart=1";
+      window.location.href = "./checkout.html?fromCart=1";
     });
     cartNodes.items.addEventListener("click", function (e) {
       const btn = e.target.closest(".lavish-cart-remove");
@@ -856,6 +856,7 @@
   const ADDON_PRICES = { fridge: 35, oven: 35, cabinets: 30, windows: 45 };
   const BED_SIZE_PRICES = { twin: 12, full: 15, queen: 18, king: 22 };
   const SERVICE_FEE = 15;
+  var currentQuoteEstimate = null;
   const PACKAGE_OPTIONS = {
     once: [
       { id: "oneTimeDesign", label: "Design with Time" },
@@ -986,6 +987,24 @@
 
     if (estimateBreakdown) estimateBreakdown.innerHTML = html;
     estimateValue.textContent = currency(grandTotal);
+    currentQuoteEstimate = {
+      serviceType: d.service,
+      cleaningPackage: d.cleaningPackage,
+      packageLabel: option ? option.label : d.cleaningPackage,
+      visitSubtotal: visitSubtotal,
+      serviceFee: SERVICE_FEE,
+      grandTotal: grandTotal,
+      profile: {
+        bedrooms: d.rooms,
+        bathrooms: d.bathrooms,
+        people: d.people,
+        pets: d.pets,
+        sqft: d.sqft,
+      },
+      addons: d.addons.slice(),
+      bedCount: d.bedCount,
+      bedSize: d.bedSize,
+    };
   }
 
   function validateForm() {
@@ -1080,17 +1099,57 @@
       const bot = form.querySelector('input[name="company"]');
       if (bot && bot.value) return;
       if (!validateForm()) return;
+      if (!currentQuoteEstimate) {
+        if (formMessage) {
+          formMessage.textContent = "Please select a cleaning type and package first.";
+          formMessage.style.color = "#ef4444";
+        }
+        return;
+      }
 
-      const firstName = String(new FormData(form).get("firstName") || "there");
+      const data = new FormData(form);
+      const quoteDraft = {
+        createdAt: new Date().toISOString(),
+        customer: {
+          firstName: String(data.get("firstName") || "").trim(),
+          lastName: String(data.get("lastName") || "").trim(),
+          phone: String(data.get("phone") || "").trim(),
+          email: String(data.get("email") || "").trim().toLowerCase(),
+        },
+        serviceDate: String(data.get("date") || ""),
+        notes: String(data.get("notes") || "").trim(),
+        estimate: currentQuoteEstimate,
+      };
+
+      writeJSON(QUOTE_DRAFT_KEY, quoteDraft);
+      cart.clear();
+      cart.add({
+        name: "Quote: " + currentQuoteEstimate.packageLabel,
+        price: currentQuoteEstimate.visitSubtotal,
+        quoted: false,
+      });
+      renderCart();
+      syncCartSummaryOnQuotePage();
+
+      sendPlatformEmail("contact_request", null, {
+        fullName: quoteDraft.customer.firstName + " " + quoteDraft.customer.lastName,
+        email: quoteDraft.customer.email,
+        phone: quoteDraft.customer.phone,
+        message:
+          "Quote Package: " + currentQuoteEstimate.packageLabel +
+          " | Total: " + currency(currentQuoteEstimate.grandTotal) +
+          " | Service Date: " + (quoteDraft.serviceDate || "Not set") +
+          (quoteDraft.notes ? " | Notes: " + quoteDraft.notes : ""),
+      });
+
       if (formMessage) {
-        formMessage.textContent = "Thanks, " + firstName + "! Your quote request is in. We\u2019ll contact you shortly.";
+        formMessage.textContent = "Quote locked at " + currency(currentQuoteEstimate.grandTotal) + ". Redirecting to checkout...";
         formMessage.style.color = "#5bc27c";
       }
       confettiBurst();
-      ["firstName", "lastName", "phone", "email", "notes"].forEach(function (name) {
-        const input = form.elements[name];
-        if (input) input.value = "";
-      });
+      setTimeout(function () {
+        window.location.href = "./checkout.html?fromQuote=1";
+      }, 450);
     });
   }
 
@@ -1380,6 +1439,552 @@
     targets.forEach(splitLetters);
   }
 
+  /* ---------- CHECKOUT (STRIPE-READY) ---------- */
+  const ORDER_KEY = "lavishOrdersV1";
+  const ACCOUNT_KEY = "lavishAccountV1";
+  const QUOTE_DRAFT_KEY = "lavishQuoteDraftV1";
+
+  function sendPlatformEmail(type, to, payload) {
+    return fetch("./api/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: type, to: to, payload: payload || {} }),
+    }).then(function (res) {
+      return res.json().catch(function () { return { ok: false }; });
+    }).catch(function () {
+      return { ok: false };
+    });
+  }
+
+  function readJSON(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (_e) {
+      return fallback;
+    }
+  }
+
+  function writeJSON(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  function initCheckoutPage() {
+    var checkoutForm = document.getElementById("checkoutForm");
+    if (!checkoutForm) return;
+
+    var list = document.getElementById("checkoutItems");
+    var subtotalEl = document.getElementById("checkoutSubtotal");
+    var feeEl = document.getElementById("checkoutServiceFee");
+    var taxEl = document.getElementById("checkoutTax");
+    var totalEl = document.getElementById("checkoutTotal");
+    var messageEl = document.getElementById("checkoutMessage");
+    var promoInput = document.getElementById("promoCodeInput");
+    var promoBtn = document.getElementById("applyPromoBtn");
+    var promoMessage = document.getElementById("promoMessage");
+    var params = new URLSearchParams(window.location.search);
+    var fromQuote = params.get("fromQuote") === "1";
+    var quoteDraft = readJSON(QUOTE_DRAFT_KEY, null);
+
+    var activeDiscount = 0;
+    var activeCode = "";
+
+    if (fromQuote && quoteDraft && quoteDraft.customer) {
+      if (checkoutForm.elements.firstName) checkoutForm.elements.firstName.value = quoteDraft.customer.firstName || "";
+      if (checkoutForm.elements.lastName) checkoutForm.elements.lastName.value = quoteDraft.customer.lastName || "";
+      if (checkoutForm.elements.email) checkoutForm.elements.email.value = quoteDraft.customer.email || "";
+      if (checkoutForm.elements.phone) checkoutForm.elements.phone.value = quoteDraft.customer.phone || "";
+      if (checkoutForm.elements.serviceDate) checkoutForm.elements.serviceDate.value = quoteDraft.serviceDate || "";
+      if (checkoutForm.elements.notes) checkoutForm.elements.notes.value = quoteDraft.notes || "";
+    }
+
+    function renderCheckoutSummary() {
+      if (!list || !subtotalEl || !feeEl || !taxEl || !totalEl) return;
+
+      if (!cart.items.length) {
+        list.innerHTML = "<li class=\"lavish-cart-item\"><small>Your cart is empty. Add services first.</small></li>";
+      } else {
+        list.innerHTML = cart.items.map(function (item) {
+          return "<li class=\"lavish-cart-item\">" +
+            "<div><h5>" + item.name + "</h5><small>" + (item.quoted ? "Quoted item" : currency(item.price)) + "</small></div>" +
+            "</li>";
+        }).join("");
+      }
+
+      var subtotal = cart.total();
+      var serviceFee = cart.items.length ? 15 : 0;
+      var tax = 0;
+      var discountAmount = Math.min(activeDiscount, subtotal);
+      var total = Math.max(0, subtotal + serviceFee + tax - discountAmount);
+
+      subtotalEl.textContent = currency(subtotal);
+      feeEl.textContent = currency(serviceFee);
+      taxEl.textContent = currency(tax);
+      totalEl.textContent = currency(total);
+    }
+
+    function applyPromoCode() {
+      if (!promoInput || !promoMessage) return;
+      var code = String(promoInput.value || "").trim().toUpperCase();
+      var subtotal = cart.total();
+      activeCode = "";
+      activeDiscount = 0;
+
+      if (!code) {
+        promoMessage.textContent = "Enter a promo code to apply.";
+      } else if (code === "SPARKLE10") {
+        activeCode = code;
+        activeDiscount = Math.round(subtotal * 0.1);
+        promoMessage.textContent = "Promo applied: 10% off service subtotal.";
+      } else if (code === "LAVISH25") {
+        activeCode = code;
+        activeDiscount = 25;
+        promoMessage.textContent = "Promo applied: $25 off service subtotal.";
+      } else {
+        promoMessage.textContent = "Promo code not recognized.";
+      }
+
+      renderCheckoutSummary();
+    }
+
+    if (promoBtn) promoBtn.addEventListener("click", applyPromoCode);
+    if (promoInput) {
+      promoInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          applyPromoCode();
+        }
+      });
+    }
+
+    checkoutForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (!cart.items.length) {
+        if (messageEl) {
+          messageEl.textContent = "Your cart is empty. Add at least one service before checkout.";
+          messageEl.style.color = "#ef4444";
+        }
+        return;
+      }
+
+      var required = checkoutForm.querySelectorAll("[required]");
+      for (var i = 0; i < required.length; i += 1) {
+        var field = required[i];
+        if (!String(field.value || "").trim()) {
+          field.focus();
+          if (messageEl) {
+            messageEl.textContent = "Please complete all required checkout fields.";
+            messageEl.style.color = "#ef4444";
+          }
+          return;
+        }
+      }
+
+      var fd = new FormData(checkoutForm);
+      var subtotal = cart.total();
+      var serviceFee = cart.items.length ? 15 : 0;
+      var total = Math.max(0, subtotal + serviceFee - Math.min(activeDiscount, subtotal));
+      var orders = readJSON(ORDER_KEY, []);
+      var account = readJSON(ACCOUNT_KEY, { user: null, paymentMethods: [] });
+
+      var order = {
+        id: "LCS-" + Date.now().toString().slice(-8),
+        createdAt: new Date().toISOString(),
+        customerName: String(fd.get("firstName") || "") + " " + String(fd.get("lastName") || ""),
+        email: String(fd.get("email") || "").toLowerCase(),
+        serviceDate: String(fd.get("serviceDate") || ""),
+        arrivalWindow: String(fd.get("arrivalWindow") || ""),
+        address: {
+          line1: String(fd.get("address1") || ""),
+          city: String(fd.get("city") || ""),
+          state: String(fd.get("state") || ""),
+          zip: String(fd.get("zip") || ""),
+        },
+        serviceLabel: cart.items.length ? cart.items[0].name : "Custom Service",
+        subtotal: subtotal,
+        serviceFee: serviceFee,
+        total: total,
+        paid: true,
+        completed: false,
+        promoCode: activeCode || null,
+        items: cart.items.slice(),
+      };
+
+      orders.unshift(order);
+      writeJSON(ORDER_KEY, orders);
+
+      if (account.user && order.email && account.user.email === order.email) {
+        account.user.lastOrderId = order.id;
+        writeJSON(ACCOUNT_KEY, account);
+      }
+
+      sendPlatformEmail("purchase_confirmation", order.email, {
+        orderId: order.id,
+        total: currency(order.total),
+        serviceDate: order.serviceDate || "Not set",
+      });
+      sendPlatformEmail("contact_request", null, {
+        fullName: order.customerName,
+        email: order.email,
+        phone: String(fd.get("phone") || ""),
+        message:
+          "Purchase completed: " + order.id +
+          " | Service: " + order.serviceLabel +
+          " | Total: " + currency(order.total) +
+          " | Paid: " + (order.paid ? "Yes" : "No") +
+          " | Date: " + (order.serviceDate || "Not set"),
+      });
+
+      cart.clear();
+      renderCart();
+      syncCartSummaryOnQuotePage();
+      renderCheckoutSummary();
+      checkoutForm.reset();
+      localStorage.removeItem(QUOTE_DRAFT_KEY);
+      activeDiscount = 0;
+      activeCode = "";
+      if (promoMessage) promoMessage.textContent = "";
+
+      if (messageEl) {
+        messageEl.textContent = "Booking submitted in demo mode. Stripe payment capture will plug in here next.";
+        messageEl.style.color = "#5bc27c";
+      }
+    });
+
+    renderCheckoutSummary();
+  }
+
+  /* ---------- ACCOUNT INTERFACE (SUPABASE-READY) ---------- */
+  function initAccountInterface() {
+    var panelRoot = document.querySelector("[data-account-panel]");
+    if (!panelRoot) return;
+
+    var tabButtons = document.querySelectorAll(".account-tab-btn");
+    var panels = document.querySelectorAll(".account-panel");
+    var statusText = document.getElementById("accountStatusText");
+    var signOutBtn = document.getElementById("accountSignOutBtn");
+    var messageEl = document.getElementById("accountMessage");
+    var signInForm = document.getElementById("accountSignInForm");
+    var registerForm = document.getElementById("accountRegisterForm");
+    var profileForm = document.getElementById("accountProfileForm");
+    var paymentForm = document.getElementById("accountPaymentForm");
+    var ordersList = document.getElementById("accountOrdersList");
+    var paymentList = document.getElementById("accountPaymentList");
+
+    var account = readJSON(ACCOUNT_KEY, { user: null, paymentMethods: [] });
+
+    function setMessage(text, color) {
+      if (!messageEl) return;
+      messageEl.textContent = text;
+      messageEl.style.color = color || "#d8cdb2";
+    }
+
+    function setActiveTab(tabName) {
+      tabButtons.forEach(function (btn) {
+        btn.classList.toggle("is-active", btn.dataset.accountTab === tabName);
+      });
+      panels.forEach(function (panel) {
+        panel.classList.toggle("is-active", panel.dataset.accountPanel === tabName);
+      });
+    }
+
+    function renderStatus() {
+      if (!statusText) return;
+      if (!account.user) {
+        statusText.textContent = "Not signed in. Use demo auth now; Supabase hooks plug in later.";
+      } else {
+        statusText.textContent = "Signed in as " + account.user.email + ".";
+      }
+    }
+
+    function renderOrders() {
+      if (!ordersList) return;
+      var orders = readJSON(ORDER_KEY, []);
+      var visible = account.user ? orders.filter(function (o) { return o.email === account.user.email; }) : [];
+      if (!visible.length) {
+        ordersList.innerHTML = "<li class=\"lavish-cart-item\"><small>No orders yet for this account.</small></li>";
+        return;
+      }
+      ordersList.innerHTML = visible.map(function (order) {
+        return "<li class=\"lavish-cart-item\"><div><h5>" + order.id + "</h5><small>" +
+          new Date(order.createdAt).toLocaleString() +
+          " • " + (order.completed ? "Completed" : "Pending") +
+          " • " + (order.paid ? "Paid" : "Unpaid") +
+          "</small></div><strong>" + currency(order.total) + "</strong></li>";
+      }).join("");
+    }
+
+    function renderPaymentMethods() {
+      if (!paymentList) return;
+      if (!account.paymentMethods.length) {
+        paymentList.innerHTML = "<li class=\"lavish-cart-item\"><small>No saved methods yet.</small></li>";
+        return;
+      }
+      paymentList.innerHTML = account.paymentMethods.map(function (pm) {
+        return "<li class=\"lavish-cart-item\"><div><h5>" + pm.brand + " ending in " + pm.last4 + "</h5><small>Saved " + new Date(pm.savedAt).toLocaleDateString() + "</small></div></li>";
+      }).join("");
+    }
+
+    function syncProfileForm() {
+      if (!profileForm || !account.user) return;
+      if (profileForm.elements.fullName) profileForm.elements.fullName.value = account.user.fullName || "";
+      if (profileForm.elements.phone) profileForm.elements.phone.value = account.user.phone || "";
+      if (profileForm.elements.address) profileForm.elements.address.value = account.user.address || "";
+    }
+
+    tabButtons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        setActiveTab(btn.dataset.accountTab || "signin");
+      });
+    });
+
+    if (signOutBtn) {
+      signOutBtn.addEventListener("click", function () {
+        account.user = null;
+        writeJSON(ACCOUNT_KEY, account);
+        renderStatus();
+        renderOrders();
+        setActiveTab("signin");
+        setMessage("Signed out.", "#d8cdb2");
+      });
+    }
+
+    if (registerForm) {
+      registerForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var fd = new FormData(registerForm);
+        var fullName = String(fd.get("fullName") || "").trim();
+        var email = String(fd.get("email") || "").toLowerCase().trim();
+        var password = String(fd.get("password") || "").trim();
+        if (!fullName || !email || !password) {
+          setMessage("Complete all create-account fields.", "#ef4444");
+          return;
+        }
+        account.user = {
+          fullName: fullName,
+          email: email,
+          password: password,
+          phone: "",
+          address: "",
+          createdAt: new Date().toISOString(),
+        };
+        writeJSON(ACCOUNT_KEY, account);
+        sendPlatformEmail("account_confirmation", email, {
+          fullName: fullName,
+        });
+        sendPlatformEmail("contact_request", null, {
+          fullName: fullName,
+          email: email,
+          phone: "",
+          message: "New account created from customer portal.",
+        });
+        renderStatus();
+        renderOrders();
+        syncProfileForm();
+        setActiveTab("profile");
+        setMessage("Account created in demo mode. Supabase auth can replace this flow.", "#5bc27c");
+      });
+    }
+
+    if (signInForm) {
+      signInForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var fd = new FormData(signInForm);
+        var email = String(fd.get("email") || "").toLowerCase().trim();
+        var password = String(fd.get("password") || "").trim();
+        if (!account.user || account.user.email !== email || account.user.password !== password) {
+          setMessage("Invalid demo credentials. Create account first.", "#ef4444");
+          return;
+        }
+        renderStatus();
+        renderOrders();
+        syncProfileForm();
+        setActiveTab("profile");
+        setMessage("Signed in successfully.", "#5bc27c");
+      });
+    }
+
+    if (profileForm) {
+      profileForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (!account.user) {
+          setMessage("Sign in first to update profile.", "#ef4444");
+          return;
+        }
+        var fd = new FormData(profileForm);
+        account.user.fullName = String(fd.get("fullName") || "").trim();
+        account.user.phone = String(fd.get("phone") || "").trim();
+        account.user.address = String(fd.get("address") || "").trim();
+        writeJSON(ACCOUNT_KEY, account);
+        renderStatus();
+        setMessage("Profile saved. Supabase profile sync can plug in later.", "#5bc27c");
+      });
+    }
+
+    if (paymentForm) {
+      paymentForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (!account.user) {
+          setMessage("Sign in first to save payment methods.", "#ef4444");
+          return;
+        }
+        var fd = new FormData(paymentForm);
+        var brand = String(fd.get("brand") || "Card");
+        var raw = String(fd.get("cardNumber") || "").replace(/\D/g, "");
+        if (raw.length < 4) {
+          setMessage("Enter at least the last 4 digits.", "#ef4444");
+          return;
+        }
+        account.paymentMethods.unshift({
+          brand: brand,
+          last4: raw.slice(-4),
+          savedAt: new Date().toISOString(),
+        });
+        account.paymentMethods = account.paymentMethods.slice(0, 4);
+        writeJSON(ACCOUNT_KEY, account);
+        renderPaymentMethods();
+        paymentForm.reset();
+        setMessage("Payment method saved in demo mode (tokenized storage comes with Stripe/Supabase).", "#5bc27c");
+      });
+    }
+
+    renderStatus();
+    syncProfileForm();
+    renderOrders();
+    renderPaymentMethods();
+    setActiveTab(account.user ? "profile" : "signin");
+  }
+
+  /* ---------- ADMIN DASHBOARD ---------- */
+  function initAdminDashboard() {
+    var ordersBody = document.getElementById("adminOrdersBody");
+    if (!ordersBody) return;
+
+    var totalOrdersEl = document.getElementById("adminTotalOrders");
+    var paidRevenueEl = document.getElementById("adminPaidRevenue");
+    var pendingRevenueEl = document.getElementById("adminPendingRevenue");
+    var completedJobsEl = document.getElementById("adminCompletedJobs");
+    var servicesListEl = document.getElementById("adminServiceTotals");
+    var statusFilter = document.getElementById("adminStatusFilter");
+    var searchInput = document.getElementById("adminSearchInput");
+    var messageEl = document.getElementById("adminMessage");
+
+    function getOrders() {
+      return readJSON(ORDER_KEY, []);
+    }
+
+    function setOrders(nextOrders) {
+      writeJSON(ORDER_KEY, nextOrders);
+    }
+
+    function filterOrders(orders) {
+      var filter = statusFilter ? String(statusFilter.value || "all") : "all";
+      var q = searchInput ? String(searchInput.value || "").toLowerCase().trim() : "";
+
+      return orders.filter(function (order) {
+        var statusMatch = true;
+        if (filter === "paid") statusMatch = !!order.paid;
+        if (filter === "unpaid") statusMatch = !order.paid;
+        if (filter === "completed") statusMatch = !!order.completed;
+        if (filter === "pending") statusMatch = !order.completed;
+
+        if (!statusMatch) return false;
+        if (!q) return true;
+
+        return [
+          order.id,
+          order.customerName,
+          order.email,
+          order.serviceLabel,
+        ].join(" ").toLowerCase().indexOf(q) !== -1;
+      });
+    }
+
+    function renderStats(orders) {
+      var totalOrders = orders.length;
+      var paidRevenue = orders.reduce(function (sum, o) { return sum + (o.paid ? Number(o.total || 0) : 0); }, 0);
+      var pendingRevenue = orders.reduce(function (sum, o) { return sum + (!o.paid ? Number(o.total || 0) : 0); }, 0);
+      var completedJobs = orders.reduce(function (sum, o) { return sum + (o.completed ? 1 : 0); }, 0);
+
+      if (totalOrdersEl) totalOrdersEl.textContent = String(totalOrders);
+      if (paidRevenueEl) paidRevenueEl.textContent = currency(paidRevenue);
+      if (pendingRevenueEl) pendingRevenueEl.textContent = currency(pendingRevenue);
+      if (completedJobsEl) completedJobsEl.textContent = String(completedJobs);
+
+      if (servicesListEl) {
+        var serviceMap = {};
+        orders.forEach(function (o) {
+          var key = o.serviceLabel || "Unspecified";
+          if (!serviceMap[key]) serviceMap[key] = { count: 0, paid: 0 };
+          serviceMap[key].count += 1;
+          serviceMap[key].paid += o.paid ? Number(o.total || 0) : 0;
+        });
+        var serviceRows = Object.keys(serviceMap).sort().map(function (name) {
+          var row = serviceMap[name];
+          return "<li class=\"lavish-cart-item\"><div><h5>" + name + "</h5><small>" + row.count + " orders</small></div><strong>" + currency(row.paid) + "</strong></li>";
+        });
+        servicesListEl.innerHTML = serviceRows.length
+          ? serviceRows.join("")
+          : "<li class=\"lavish-cart-item\"><small>No services booked yet.</small></li>";
+      }
+    }
+
+    function renderOrdersTable() {
+      var all = getOrders();
+      var visible = filterOrders(all);
+      renderStats(all);
+
+      if (!visible.length) {
+        ordersBody.innerHTML = "<tr><td colspan=\"7\"><small>No matching orders.</small></td></tr>";
+        return;
+      }
+
+      ordersBody.innerHTML = visible.map(function (order) {
+        return "<tr>" +
+          "<td>" + order.id + "<br/><small>" + new Date(order.createdAt).toLocaleDateString() + "</small></td>" +
+          "<td>" + (order.customerName || "-") + "<br/><small>" + (order.email || "-") + "</small></td>" +
+          "<td>" + (order.serviceLabel || "Custom") + "<br/><small>" + (order.serviceDate || "Date not set") + "</small></td>" +
+          "<td>" + currency(order.total || 0) + "</td>" +
+          "<td>" + (order.paid ? "Yes" : "No") + "</td>" +
+          "<td>" + (order.completed ? "Yes" : "No") + "</td>" +
+          "<td class=\"admin-actions-cell\">" +
+          "<button class=\"btn btn-ghost btn-sm admin-toggle-paid\" data-order-id=\"" + order.id + "\">" + (order.paid ? "Mark Unpaid" : "Mark Paid") + "</button>" +
+          "<button class=\"btn btn-ghost btn-sm admin-toggle-complete\" data-order-id=\"" + order.id + "\">" + (order.completed ? "Mark Pending" : "Mark Complete") + "</button>" +
+          "</td>" +
+          "</tr>";
+      }).join("");
+    }
+
+    if (statusFilter) statusFilter.addEventListener("change", renderOrdersTable);
+    if (searchInput) searchInput.addEventListener("input", renderOrdersTable);
+
+    ordersBody.addEventListener("click", function (e) {
+      var paidBtn = e.target.closest(".admin-toggle-paid");
+      var doneBtn = e.target.closest(".admin-toggle-complete");
+      if (!paidBtn && !doneBtn) return;
+      var id = paidBtn ? paidBtn.dataset.orderId : doneBtn.dataset.orderId;
+      var orders = getOrders();
+      var changed = false;
+      orders = orders.map(function (o) {
+        if (o.id !== id) return o;
+        changed = true;
+        if (paidBtn) o.paid = !o.paid;
+        if (doneBtn) o.completed = !o.completed;
+        return o;
+      });
+      if (changed) {
+        setOrders(orders);
+        if (messageEl) {
+          messageEl.textContent = "Order updated.";
+          messageEl.style.color = "#5bc27c";
+        }
+        renderOrdersTable();
+      }
+    });
+
+    renderOrdersTable();
+  }
+
   /* ---------- INIT ---------- */
   safeInit(initCinematicLoading, "cinematicLoading");
   safeInit(initLogoMorphIntro, "logoMorphIntro");
@@ -1398,4 +2003,7 @@
   safeInit(setupTextHoverFade, "textHoverFade");
   safeInit(setupMagneticControls, "magneticControls");
   safeInit(setup3DCardTilt, "3DCardTilt");
+  safeInit(initCheckoutPage, "checkoutPage");
+  safeInit(initAccountInterface, "accountInterface");
+  safeInit(initAdminDashboard, "adminDashboard");
 })();
